@@ -1,0 +1,13 @@
+.App {
+  font-family: sans-serif;
+  text-align: center;
+}
+.leaflet-tooltip.district-label {
+  background: none;
+  border: none;
+  color: white;
+  font-weight: bold;
+  text-shadow: 1px 1px 3px black;
+  font-size: 12px;
+  pointer-events: none;
+}
