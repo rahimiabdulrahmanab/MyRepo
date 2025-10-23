@@ -15,7 +15,6 @@ import {
 import MarkerClusterGroup from "react-leaflet-cluster";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import "./styles.css";
 
 import SearchFilters from "./SearchFilters";
 
@@ -74,7 +73,7 @@ export default function MidSection() {
   const mapRef = useRef(null);
   const markerRefs = useRef({});     // id (string) -> Leaflet Marker
   const itemRefs = useRef({});       // id (string) -> <li> element
-  const stickySidebarRef = useRef(null); // ⬅️ scroll container ref (NEW)
+  const stickySidebarRef = useRef(null); // scroll container ref
 
   // ---------- Load GeoJSON ----------
   useEffect(() => {
@@ -172,7 +171,8 @@ export default function MidSection() {
     if (container && el) {
       // Center the item manually within the scroll container
       const offset = el.offsetTop - container.offsetTop;
-      const targetTop = offset - (container.clientHeight / 2 - el.clientHeight / 2);
+      const targetTop =
+        offset - (container.clientHeight / 2 - el.clientHeight / 2);
       container.scrollTo({ top: Math.max(targetTop, 0), behavior: "smooth" });
     }
   }, [selectedId]);
@@ -274,9 +274,15 @@ export default function MidSection() {
                       height="64"
                     />
                     <div className="flex-grow-1">
-                      <div className="fw-semibold text-primary mb-1">
+                      {/* Name: switch to white when active */}
+                      <div
+                        className={`fw-semibold mb-1 ${
+                          selectedId === id ? "text-white" : "text-primary"
+                        }`}
+                      >
                         {c["Facility Name (DHIS2)"] || "Unnamed Facility"}
                       </div>
+
                       <div className="small text-muted">
                         {c["District Name"]} • {c["Province Name"]}
                       </div>
@@ -330,7 +336,7 @@ export default function MidSection() {
                 </LayersControl.BaseLayer>
                 <LayersControl.BaseLayer name="Satellite">
                   <TileLayer
-                    url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}`
+                    url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
                     attribution="&copy; Esri, Earthstar Geographics"
                   />
                 </LayersControl.BaseLayer>
@@ -478,4 +484,3 @@ export default function MidSection() {
     </div>
   );
 }
-
