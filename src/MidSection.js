@@ -18,7 +18,6 @@ import "./styles.css";
 
 import SearchFilters from "./SearchFilters";
 
-// ---------- Icons ----------
 const clinicIcon = new L.Icon({
   iconUrl:
     "https://raw.githubusercontent.com/rahimiabdulrahmanab/Clinics-Dashboard/main/Marker.png",
@@ -31,18 +30,13 @@ const clinicIcon = new L.Icon({
   shadowAnchor: [10, 30],
 });
 
-// ---------- Data sources ----------
 const csvUrl =
   "https://raw.githubusercontent.com/rahimiabdulrahmanab/Clinics-Dashboard/main/Afghanistan%20Clinics.csv";
-
 const geojsonUrl =
   "https://raw.githubusercontent.com/rahimiabdulrahmanab/ShapeFile_Project/main/afg_admin2.geojson";
 
-// ---------- Helper (list ↔ map sync) ----------
 function FlyToOnSelect({ target, zoom = 10 }) {
-  // Get a stable map instance without needing a separate ref
   const map = useMapEvent("click", () => {});
-  // Derive stable deps so hooks are always invoked in the same order
   const tLat = target?.[0];
   const tLon = target?.[1];
 
@@ -69,15 +63,15 @@ export default function MidSection() {
 
   const [zoomLevel, setZoomLevel] = useState(6);
   const [showClusters, setShowClusters] = useState(true);
-  const [showBoundaries, setShowBoundaries] = useState(false);
+  const [showBoundaries, setShowBoundaries] = useState(false); // default OFF
 
   const [flyTo, setFlyTo] = useState(null);
   const mapRef = useRef(null);
   const markerRefs = useRef({}); // id -> Leaflet Marker
+  const itemRefs = useRef({});   // id -> <li> element  ⬅️ NEW
 
   const navigate = useNavigate();
 
-  // ---------- Load GeoJSON ----------
   useEffect(() => {
     async function loadGeo() {
       try {
@@ -94,7 +88,6 @@ export default function MidSection() {
     loadGeo();
   }, []);
 
-  // ---------- Load CSV ----------
   useEffect(() => {
     setLoadingCsv(true);
     Papa.parse(csvUrl, {
@@ -103,8 +96,6 @@ export default function MidSection() {
       complete: (result) => {
         try {
           let rows = result.data;
-
-          // De-duplicate by facility name (DHIS2)
           const seen = new Set();
           rows = rows.filter((clinic) => {
             const name = clinic["Facility Name (DHIS2)"];
@@ -112,8 +103,6 @@ export default function MidSection() {
             seen.add(name);
             return true;
           });
-
-          // Keep only valid points inside Afghanistan range
           rows = rows.filter((clinic) => {
             const lat = parseFloat(clinic.Latitude);
             const lon = parseFloat(clinic.Longitude);
@@ -136,11 +125,9 @@ export default function MidSection() {
     });
   }, []);
 
-  // ---------- Derived stats ----------
   const totalClinics = allClinics.length;
   const filteredClinics = clinics.length;
 
-  // ---------- Memoized markers ----------
   const markerItems = useMemo(
     () =>
       clinics
@@ -155,16 +142,22 @@ export default function MidSection() {
     [clinics]
   );
 
-  // ---------- Handlers ----------
   const handleListClick = (id, lat, lon) => {
     setSelectedId(id);
     setFlyTo([lat, lon]); // sync map camera
-    // open popup shortly after flyTo
     setTimeout(() => {
       markerRefs.current[id]?.openPopup?.();
     }, 700);
     navigate(`/clinic/${id}`);
   };
+
+  // ⬇️ NEW: when selectedId changes (from map click or list), scroll the list to the item
+  useEffect(() => {
+    const el = itemRefs.current[selectedId];
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [selectedId]);
 
   const headerBadge = (label, value, tone = "primary") => (
     <div className="d-flex align-items-center gap-2 header-badge">
@@ -178,7 +171,6 @@ export default function MidSection() {
 
   return (
     <div className="container-fluid py-3 px-3">
-      {/* ---------- Page Header / Stats & Actions ---------- */}
       <div className="row g-3 align-items-center mb-3">
         <div className="col-lg-8">
           <div className="d-flex flex-wrap align-items-center gap-4">
@@ -190,7 +182,6 @@ export default function MidSection() {
         </div>
 
         <div className="col-lg-4">
-          {/* Quick toggles */}
           <div className="d-flex justify-content-lg-end gap-2">
             <button
               className={`btn btn-sm ${
@@ -214,12 +205,10 @@ export default function MidSection() {
         </div>
       </div>
 
-      {/* ---------- Filters (top) ---------- */}
       <div className="mb-2">
         <SearchFilters clinics={allClinics} onFilter={setClinics} />
       </div>
 
-      {/* ---------- Error / Loading banners ---------- */}
       {(loadingCsv || loadingGeo) && (
         <div className="alert alert-info py-2 mb-3">
           Loading data… {loadingCsv && "clinics"} {loadingGeo && "boundaries"}
@@ -232,9 +221,7 @@ export default function MidSection() {
         </div>
       )}
 
-      {/* ---------- Main Content ---------- */}
       <div className="row g-0">
-        {/* Left: Sticky List */}
         <div className="col-md-4 border-end">
           <div className="sticky-sidebar">
             <div className="d-flex align-items-center justify-content-between px-3 py-2">
@@ -246,6 +233,7 @@ export default function MidSection() {
               {markerItems.map(({ id, lat, lon, c }) => (
                 <li
                   key={id}
+                  ref={(node) => (itemRefs.current[id] = node)} {/* <-- NEW */}
                   className={`list-group-item clinic-item ${
                     selectedId === id ? "active" : ""
                   }`}
@@ -288,7 +276,6 @@ export default function MidSection() {
           </div>
         </div>
 
-        {/* Right: Map */}
         <div className="col-md-8">
           <div className="map-wrap">
             <MapContainer
@@ -302,20 +289,16 @@ export default function MidSection() {
               }}
               zoomControl={true}
             >
-              {/* Keep map in sync with list selection */}
               <FlyToOnSelect target={flyTo} zoom={10} />
-
               <ScaleControl imperial={false} position="bottomleft" />
 
               <LayersControl position="topright">
-                {/* Base layers */}
                 <LayersControl.BaseLayer checked name="Street Map">
                   <TileLayer
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                     attribution="&copy; OpenStreetMap"
                   />
                 </LayersControl.BaseLayer>
-
                 <LayersControl.BaseLayer name="Satellite">
                   <TileLayer
                     url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
@@ -323,11 +306,7 @@ export default function MidSection() {
                   />
                 </LayersControl.BaseLayer>
 
-                {/* District boundaries */}
-                <LayersControl.Overlay
-                  name="District Boundaries"
-                  checked={showBoundaries}
-                >
+                <LayersControl.Overlay name="District Boundaries">
                   <div style={{ display: showBoundaries ? "block" : "none" }}>
                     {geojson && (
                       <GeoJSON
@@ -366,7 +345,6 @@ export default function MidSection() {
                 </LayersControl.Overlay>
               </LayersControl>
 
-              {/* Markers (cluster toggle) */}
               {showClusters ? (
                 <MarkerClusterGroup
                   iconCreateFunction={(cluster) =>
@@ -390,16 +368,11 @@ export default function MidSection() {
                       key={id}
                       position={[lat, lon]}
                       icon={clinicIcon}
-                      eventHandlers={{
-                        click: () => setSelectedId(id),
-                      }}
+                      eventHandlers={{ click: () => setSelectedId(id) }}
                       ref={(marker) => {
-                        // Store Leaflet Marker instance for programmatic openPopup()
                         if (marker && marker.leafletElement) {
-                          // react-leaflet v3 pattern (but your deps show v5)
                           markerRefs.current[id] = marker.leafletElement;
                         } else if (marker) {
-                          // react-leaflet v4/v5 pattern
                           markerRefs.current[id] = marker;
                         }
                       }}
@@ -437,7 +410,6 @@ export default function MidSection() {
               )}
             </MapContainer>
 
-            {/* Map corner legend */}
             <div className="map-legend card shadow-sm">
               <div className="legend-row">
                 <span className="legend-swatch border" />
