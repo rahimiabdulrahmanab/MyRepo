@@ -8,9 +8,10 @@ export default function Intro() {
 
       {/* Paragraph text below */}
       <p className="text-muted fs-7 lh-lg">
-        UNICEF Afghanistan supports clinics across all provinces and districts,
+        @ORG Afghanistan supports clinics across all provinces and districts,
         helping deliver healthcare and essential services to communities.
       </p>
     </div>
   );
 }
+
