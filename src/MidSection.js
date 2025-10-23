@@ -1,4 +1,3 @@
-// src/MidSection.js
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Papa from "papaparse";
@@ -40,17 +39,14 @@ const geojsonUrl =
 
 // ---------- Helper: move map when a target is selected ----------
 function FlyToOnSelect({ target, zoom = 10 }) {
-  // Using a map event to get the map instance (works in react-leaflet v4/v5)
   const map = useMapEvent("click", () => {});
   const tLat = target?.[0];
   const tLon = target?.[1];
-
   useEffect(() => {
     if (tLat != null && tLon != null) {
       map.flyTo([tLat, tLon], zoom, { duration: 0.8 });
     }
   }, [map, tLat, tLon, zoom]);
-
   return null;
 }
 
@@ -75,8 +71,9 @@ export default function MidSection() {
   const [flyTo, setFlyTo] = useState(null);
 
   const mapRef = useRef(null);
-  const markerRefs = useRef({}); // id (string) -> Leaflet Marker
-  const itemRefs = useRef({}); // id (string) -> <li> element
+  const markerRefs = useRef({});     // id (string) -> Leaflet Marker
+  const itemRefs = useRef({});       // id (string) -> <li> element
+  const stickySidebarRef = useRef(null); // ⬅️ scroll container ref (NEW)
 
   // ---------- Load GeoJSON ----------
   useEffect(() => {
@@ -160,22 +157,23 @@ export default function MidSection() {
   const handleListClick = (id, lat, lon) => {
     setSelectedId(id);
     setFlyTo([lat, lon]); // move the map
-    // Try to open the popup after the camera moves
     setTimeout(() => {
       markerRefs.current[id]?.openPopup?.();
     }, 700);
-    // Navigate to clinic detail route
     navigate(`/clinic/${id}`);
   };
 
-  // ---------- When a marker is clicked (from map) ----------
-  // selectedId is set in the <Marker> eventHandlers below.
-
-  // ---------- Scroll the list when selection changes ----------
+  // ---------- Auto-scroll the list whenever selection changes (robust) ----------
   useEffect(() => {
     if (!selectedId) return;
+    const container = stickySidebarRef.current;
     const el = itemRefs.current[String(selectedId)];
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (container && el) {
+      // Center the item manually within the scroll container
+      const offset = el.offsetTop - container.offsetTop;
+      const targetTop = offset - (container.clientHeight / 2 - el.clientHeight / 2);
+      container.scrollTo({ top: Math.max(targetTop, 0), behavior: "smooth" });
+    }
   }, [selectedId]);
 
   // ---------- Header badge UI ----------
@@ -248,7 +246,7 @@ export default function MidSection() {
       <div className="row g-0">
         {/* Left: List */}
         <div className="col-md-4 border-end">
-          <div className="sticky-sidebar">
+          <div className="sticky-sidebar" ref={stickySidebarRef}>
             <div className="d-flex align-items-center justify-content-between px-3 py-2">
               <h6 className="mb-0 text-secondary">Clinic List</h6>
               <span className="badge text-bg-light">{filteredClinics}</span>
@@ -331,7 +329,7 @@ export default function MidSection() {
                 </LayersControl.BaseLayer>
                 <LayersControl.BaseLayer name="Satellite">
                   <TileLayer
-                    url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                    url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}`
                     attribution="&copy; Esri, Earthstar Geographics"
                   />
                 </LayersControl.BaseLayer>
@@ -403,7 +401,6 @@ export default function MidSection() {
                       icon={clinicIcon}
                       eventHandlers={{
                         click: () => {
-                          // marker click: select + scroll (no navigation)
                           setSelectedId(id);
                           setFlyTo([lat, lon]);
                           setTimeout(() => {
@@ -411,7 +408,6 @@ export default function MidSection() {
                           }, 250);
                         },
                       }}
-                      // Save marker ref for programmatic popup
                       ref={(marker) => {
                         if (marker && marker.leafletElement) {
                           markerRefs.current[id] = marker.leafletElement;
