@@ -1,3 +1,4 @@
+// src/MidSection.js
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Papa from "papaparse";
@@ -18,6 +19,7 @@ import "./styles.css";
 
 import SearchFilters from "./SearchFilters";
 
+// ---------- Icon ----------
 const clinicIcon = new L.Icon({
   iconUrl:
     "https://raw.githubusercontent.com/rahimiabdulrahmanab/Clinics-Dashboard/main/Marker.png",
@@ -30,12 +32,15 @@ const clinicIcon = new L.Icon({
   shadowAnchor: [10, 30],
 });
 
+// ---------- Data sources ----------
 const csvUrl =
   "https://raw.githubusercontent.com/rahimiabdulrahmanab/Clinics-Dashboard/main/Afghanistan%20Clinics.csv";
 const geojsonUrl =
   "https://raw.githubusercontent.com/rahimiabdulrahmanab/ShapeFile_Project/main/afg_admin2.geojson";
 
+// ---------- Helper: move map when a target is selected ----------
 function FlyToOnSelect({ target, zoom = 10 }) {
+  // Using a map event to get the map instance (works in react-leaflet v4/v5)
   const map = useMapEvent("click", () => {});
   const tLat = target?.[0];
   const tLon = target?.[1];
@@ -50,9 +55,11 @@ function FlyToOnSelect({ target, zoom = 10 }) {
 }
 
 export default function MidSection() {
+  const navigate = useNavigate();
+
   const [allClinics, setAllClinics] = useState([]);
   const [clinics, setClinics] = useState([]);
-  const [selectedId, setSelectedId] = useState(null);
+  const [selectedId, setSelectedId] = useState(null); // always string
 
   const [geojson, setGeojson] = useState(null);
 
@@ -63,15 +70,15 @@ export default function MidSection() {
 
   const [zoomLevel, setZoomLevel] = useState(6);
   const [showClusters, setShowClusters] = useState(true);
-  const [showBoundaries, setShowBoundaries] = useState(false); // default OFF
+  const [showBoundaries, setShowBoundaries] = useState(false); // OFF by default
 
   const [flyTo, setFlyTo] = useState(null);
+
   const mapRef = useRef(null);
-  const markerRefs = useRef({}); // id -> Leaflet Marker
-  const itemRefs = useRef({});   // id -> <li> element  ⬅️ NEW
+  const markerRefs = useRef({}); // id (string) -> Leaflet Marker
+  const itemRefs = useRef({}); // id (string) -> <li> element
 
-  const navigate = useNavigate();
-
+  // ---------- Load GeoJSON ----------
   useEffect(() => {
     async function loadGeo() {
       try {
@@ -79,7 +86,7 @@ export default function MidSection() {
         const res = await fetch(geojsonUrl);
         const data = await res.json();
         setGeojson(data);
-      } catch (e) {
+      } catch {
         setErrorGeo("Failed to load district boundaries.");
       } finally {
         setLoadingGeo(false);
@@ -88,6 +95,7 @@ export default function MidSection() {
     loadGeo();
   }, []);
 
+  // ---------- Load Clinics CSV ----------
   useEffect(() => {
     setLoadingCsv(true);
     Papa.parse(csvUrl, {
@@ -96,6 +104,8 @@ export default function MidSection() {
       complete: (result) => {
         try {
           let rows = result.data;
+
+          // De-duplicate by Facility Name (DHIS2)
           const seen = new Set();
           rows = rows.filter((clinic) => {
             const name = clinic["Facility Name (DHIS2)"];
@@ -103,16 +113,18 @@ export default function MidSection() {
             seen.add(name);
             return true;
           });
+
+          // Keep only valid coordinates inside Afghanistan bounding box
           rows = rows.filter((clinic) => {
             const lat = parseFloat(clinic.Latitude);
             const lon = parseFloat(clinic.Longitude);
-            if (isNaN(lat) || isNaN(lon)) return false;
+            if (Number.isNaN(lat) || Number.isNaN(lon)) return false;
             return lat >= 29.0 && lat <= 39.5 && lon >= 60.5 && lon <= 74.9;
           });
 
           setAllClinics(rows);
           setClinics(rows);
-        } catch (e) {
+        } catch {
           setErrorCsv("Failed to process clinics CSV.");
         } finally {
           setLoadingCsv(false);
@@ -125,40 +137,48 @@ export default function MidSection() {
     });
   }, []);
 
+  // ---------- Derived counts ----------
   const totalClinics = allClinics.length;
   const filteredClinics = clinics.length;
 
-  const markerItems = useMemo(
-    () =>
-      clinics
-        .map((c, i) => {
-          if (!c.Latitude || !c.Longitude) return null;
-          const id = c.FacilityID || i;
-          const lat = parseFloat(c.Latitude);
-          const lon = parseFloat(c.Longitude);
-          return { id, lat, lon, c };
-        })
-        .filter(Boolean),
-    [clinics]
-  );
+  // ---------- Normalize markers (ids are strings) ----------
+  const markerItems = useMemo(() => {
+    return clinics
+      .map((c, i) => {
+        const lat = parseFloat(c.Latitude);
+        const lon = parseFloat(c.Longitude);
+        if (Number.isNaN(lat) || Number.isNaN(lon)) return null;
 
+        // Always use a string id (FacilityID or fallback to index)
+        const id = String(c.FacilityID ?? i);
+        return { id, lat, lon, c };
+      })
+      .filter(Boolean);
+  }, [clinics]);
+
+  // ---------- When a list item is clicked ----------
   const handleListClick = (id, lat, lon) => {
     setSelectedId(id);
-    setFlyTo([lat, lon]); // sync map camera
+    setFlyTo([lat, lon]); // move the map
+    // Try to open the popup after the camera moves
     setTimeout(() => {
       markerRefs.current[id]?.openPopup?.();
     }, 700);
+    // Navigate to clinic detail route
     navigate(`/clinic/${id}`);
   };
 
-  // ⬇️ NEW: when selectedId changes (from map click or list), scroll the list to the item
+  // ---------- When a marker is clicked (from map) ----------
+  // selectedId is set in the <Marker> eventHandlers below.
+
+  // ---------- Scroll the list when selection changes ----------
   useEffect(() => {
-    const el = itemRefs.current[selectedId];
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
+    if (!selectedId) return;
+    const el = itemRefs.current[String(selectedId)];
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [selectedId]);
 
+  // ---------- Header badge UI ----------
   const headerBadge = (label, value, tone = "primary") => (
     <div className="d-flex align-items-center gap-2 header-badge">
       <span className={`badge-dot bg-${tone}`} />
@@ -171,6 +191,7 @@ export default function MidSection() {
 
   return (
     <div className="container-fluid py-3 px-3">
+      {/* Header: stats + toggles */}
       <div className="row g-3 align-items-center mb-3">
         <div className="col-lg-8">
           <div className="d-flex flex-wrap align-items-center gap-4">
@@ -205,10 +226,12 @@ export default function MidSection() {
         </div>
       </div>
 
+      {/* Filters */}
       <div className="mb-2">
         <SearchFilters clinics={allClinics} onFilter={setClinics} />
       </div>
 
+      {/* Loading / errors */}
       {(loadingCsv || loadingGeo) && (
         <div className="alert alert-info py-2 mb-3">
           Loading data… {loadingCsv && "clinics"} {loadingGeo && "boundaries"}
@@ -221,7 +244,9 @@ export default function MidSection() {
         </div>
       )}
 
+      {/* Main content */}
       <div className="row g-0">
+        {/* Left: List */}
         <div className="col-md-4 border-end">
           <div className="sticky-sidebar">
             <div className="d-flex align-items-center justify-content-between px-3 py-2">
@@ -233,7 +258,9 @@ export default function MidSection() {
               {markerItems.map(({ id, lat, lon, c }) => (
                 <li
                   key={id}
-                  ref={(node) => (itemRefs.current[id] = node)} {/* <-- NEW */}
+                  ref={(node) => {
+                    itemRefs.current[id] = node;
+                  }}
                   className={`list-group-item clinic-item ${
                     selectedId === id ? "active" : ""
                   }`}
@@ -276,6 +303,7 @@ export default function MidSection() {
           </div>
         </div>
 
+        {/* Right: Map */}
         <div className="col-md-8">
           <div className="map-wrap">
             <MapContainer
@@ -289,10 +317,12 @@ export default function MidSection() {
               }}
               zoomControl={true}
             >
+              {/* Sync camera when a list item is selected */}
               <FlyToOnSelect target={flyTo} zoom={10} />
               <ScaleControl imperial={false} position="bottomleft" />
 
               <LayersControl position="topright">
+                {/* Base layers */}
                 <LayersControl.BaseLayer checked name="Street Map">
                   <TileLayer
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -306,6 +336,7 @@ export default function MidSection() {
                   />
                 </LayersControl.BaseLayer>
 
+                {/* District boundaries (off by default) */}
                 <LayersControl.Overlay name="District Boundaries">
                   <div style={{ display: showBoundaries ? "block" : "none" }}>
                     {geojson && (
@@ -327,6 +358,7 @@ export default function MidSection() {
                             className: "district-label",
                           });
 
+                          // Show labels only when zoom >= 8
                           layer.on("add", (e) => {
                             const map = e.target._map;
                             if (!map) return;
@@ -345,6 +377,7 @@ export default function MidSection() {
                 </LayersControl.Overlay>
               </LayersControl>
 
+              {/* Markers */}
               {showClusters ? (
                 <MarkerClusterGroup
                   iconCreateFunction={(cluster) =>
@@ -368,7 +401,17 @@ export default function MidSection() {
                       key={id}
                       position={[lat, lon]}
                       icon={clinicIcon}
-                      eventHandlers={{ click: () => setSelectedId(id) }}
+                      eventHandlers={{
+                        click: () => {
+                          // marker click: select + scroll (no navigation)
+                          setSelectedId(id);
+                          setFlyTo([lat, lon]);
+                          setTimeout(() => {
+                            markerRefs.current[id]?.openPopup?.();
+                          }, 250);
+                        },
+                      }}
+                      // Save marker ref for programmatic popup
                       ref={(marker) => {
                         if (marker && marker.leafletElement) {
                           markerRefs.current[id] = marker.leafletElement;
@@ -391,7 +434,15 @@ export default function MidSection() {
                     key={id}
                     position={[lat, lon]}
                     icon={clinicIcon}
-                    eventHandlers={{ click: () => setSelectedId(id) }}
+                    eventHandlers={{
+                      click: () => {
+                        setSelectedId(id);
+                        setFlyTo([lat, lon]);
+                        setTimeout(() => {
+                          markerRefs.current[id]?.openPopup?.();
+                        }, 250);
+                      },
+                    }}
                     ref={(marker) => {
                       if (marker && marker.leafletElement) {
                         markerRefs.current[id] = marker.leafletElement;
@@ -410,6 +461,7 @@ export default function MidSection() {
               )}
             </MapContainer>
 
+            {/* Map legend */}
             <div className="map-legend card shadow-sm">
               <div className="legend-row">
                 <span className="legend-swatch border" />
