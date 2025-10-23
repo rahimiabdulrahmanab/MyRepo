@@ -18,7 +18,7 @@ export default function Header() {
         />
         {/* Organization name */}
         <span className="navbar-brand mb-0 h1 text-primary fw-bold text-uppercase letter-spacing px-2">
-          UNICEF Afghanistan
+          Clinics in Afghanistan
         </span>
       </div>
 
@@ -33,3 +33,4 @@ export default function Header() {
     </nav>
   );
 }
+
