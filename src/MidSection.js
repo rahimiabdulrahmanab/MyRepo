@@ -69,7 +69,7 @@ export default function MidSection() {
 
   const [zoomLevel, setZoomLevel] = useState(6);
   const [showClusters, setShowClusters] = useState(true);
-  const [showBoundaries, setShowBoundaries] = useState(true);
+  const [showBoundaries, setShowBoundaries] = useState(false);
 
   const [flyTo, setFlyTo] = useState(null);
   const mapRef = useRef(null);
