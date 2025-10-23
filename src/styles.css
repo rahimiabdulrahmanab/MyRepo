@@ -11,3 +11,105 @@
   font-size: 12px;
   pointer-events: none;
 }
+/* Make the left list stick while scrolling */
+.sticky-sidebar {
+  position: sticky;
+  top: 0;
+  height: 80vh;
+  overflow: auto;
+  background: #fff;
+}
+
+/* Better list readability */
+.clinic-list .clinic-item {
+  cursor: pointer;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+.clinic-list .clinic-item:hover {
+  background: #f7fbff;
+}
+.clinic-list .clinic-item.active {
+  background: #1976d2 !important;
+  color: #fff;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+}
+
+/* Header stat badges */
+.header-badge .badge-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+.badge-dot.bg-primary {
+  background: #1976d2;
+}
+.badge-dot.bg-success {
+  background: #2e7d32;
+}
+.badge-dot.bg-info {
+  background: #0288d1;
+}
+
+/* Map wrapper fills column height */
+.map-wrap {
+  height: 80vh;
+  position: relative;
+}
+
+/* District label style */
+.leaflet-tooltip.district-label {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  color: #374151;
+  font-weight: 600;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
+  pointer-events: none;
+}
+
+/* Cluster chip look */
+.cluster-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #1976d2;
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 12px;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.35);
+}
+
+/* Map legend card */
+.map-legend {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  background: #ffffff;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+.legend-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0;
+}
+.legend-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  background: url("https://raw.githubusercontent.com/rahimiabdulrahmanab/Clinics-Dashboard/main/Marker.png")
+    center/contain no-repeat;
+}
+.legend-line {
+  width: 18px;
+  height: 0;
+  border-top: 2px solid #ffd54f;
+}
+.object-cover {
+  object-fit: cover;
+}
