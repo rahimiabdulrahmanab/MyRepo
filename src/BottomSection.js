@@ -89,10 +89,11 @@ export default function BottomSection() {
         <div className="col text-center">
           <p className="mt-3" style={{ fontSize: "14px", opacity: "0.9" }}>
             UNICEF Afghanistan © {new Date().getFullYear()} | Contact:
-            info@unicef.org
+            info@......org
           </p>
         </div>
       </div>
     </div>
   );
 }
+
