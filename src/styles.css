@@ -119,16 +119,10 @@
   color: #fff; 
 }
 
-/* Override utility colors inside active row */
-.clinic-item.active .text-primary { 
-  color: #fff !important; 
-}
-.clinic-item.active .text-muted { 
-  color: rgba(255,255,255,0.85) !important; 
+.clinic-item.active { background: #1976d2 !important; color: #fff; }
+.clinic-item.active .text-primary { color: #fff !important; }
+.clinic-item.active .text-muted { color: rgba(255,255,255,0.85) !important; }
+.clinic-item.active .badge.text-bg-light {
+  background: #fff !important; color: #1976d2 !important;
 }
 
-/* Badges inside active row should invert for contrast */
-.clinic-item.active .badge.text-bg-light {
-  background: #fff !important;
-  color: #1976d2 !important;
-}
