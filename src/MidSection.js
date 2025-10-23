@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import "./styles.css";
 import { useNavigate } from "react-router-dom";
 import Papa from "papaparse";
 import {
@@ -477,3 +478,4 @@ export default function MidSection() {
     </div>
   );
 }
+
