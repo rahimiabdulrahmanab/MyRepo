@@ -9,7 +9,7 @@ export default function Header() {
       <div className="d-flex align-items-center ">
         {/* UNICEF logo image */}
         <img
-          src="https://raw.githubusercontent.com/rahimiabdulrahmanab/Clinics-Dashboard/main/Logo.png
+          src="https://raw.githubusercontent.com/rahimiabdulrahmanab/Afghanistan-Clinics-Dashboard_React-Project/main/logo2.jpg
           "
           alt="UNICEF Logo"
           width="50"
@@ -33,4 +33,5 @@ export default function Header() {
     </nav>
   );
 }
+
 
