@@ -73,7 +73,7 @@ export default function MidSection() {
   const mapRef = useRef(null);
   const markerRefs = useRef({});     // id (string) -> Leaflet Marker
   const itemRefs = useRef({});       // id (string) -> <li> element
-  const stickySidebarRef = useRef(null); // scroll container ref
+  const stickySidebarRef = useRef(null); // scroll container (.sticky-sidebar)
 
   // ---------- Load GeoJSON ----------
   useEffect(() => {
@@ -163,17 +163,28 @@ export default function MidSection() {
     navigate(`/clinic/${id}`);
   };
 
-  // ---------- Auto-scroll the list whenever selection changes (robust) ----------
+  // ---------- Auto-scroll the list whenever selection changes (center item) ----------
   useEffect(() => {
     if (!selectedId) return;
     const container = stickySidebarRef.current;
     const el = itemRefs.current[String(selectedId)];
     if (container && el) {
-      // Center the item manually within the scroll container
-      const offset = el.offsetTop - container.offsetTop;
-      const targetTop =
-        offset - (container.clientHeight / 2 - el.clientHeight / 2);
-      container.scrollTo({ top: Math.max(targetTop, 0), behavior: "smooth" });
+      // Use bounding rects + scrollTop to avoid offsetParent issues
+      const containerRect = container.getBoundingClientRect();
+      const elRect = el.getBoundingClientRect();
+      const currentScroll = container.scrollTop;
+
+      // Element center in the container's scroll space
+      const elCenter =
+        (elRect.top - containerRect.top) + currentScroll + (elRect.height / 2);
+
+      // Scroll so element center == container center
+      const targetTop = elCenter - (container.clientHeight / 2);
+
+      container.scrollTo({
+        top: Math.max(targetTop, 0),
+        behavior: "smooth",
+      });
     }
   }, [selectedId]);
 
@@ -274,9 +285,9 @@ export default function MidSection() {
                       height="64"
                     />
                     <div className="flex-grow-1">
-                      {/* Name: switch to white when active */}
+                      {/* Name: keep readable when active (matches your CSS) */}
                       <div
-                        className={`fw-semibold mb-1 ${
+                        className={`fw-semibold mb-1 clinic-name ${
                           selectedId === id ? "text-white" : "text-primary"
                         }`}
                       >
